@@ -1,0 +1,25 @@
+{
+  "name": "homebridge-wallpad",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "homebridge",
+    "homebridge-plugin",
+    "homebridge-accessory",
+    "ew11",
+    "wallpad"
+  ],
+  "engines": {
+    "node": ">=10.17.0",
+    "homebridge": ">=1.0.0"
+  },
+  "author": "SeungwonRyu",
+  "license": "ISC",
+  "dependencies": {
+    "homebridge": "^1.11.1"
+  }
+}
