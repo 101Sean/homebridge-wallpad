@@ -21,17 +21,11 @@ class WallpadPlatform {
     }
 
     publishExternalAccessory() {
-        const bellName = this.config.bellName || '공동현관 초인종';
+        const bellName = this.config.bellName || 'Doorbell';
         const bellUuid = this.api.hap.uuid.generate('homebridge-wallpad-bell');
         const bellAccessory = new this.api.platformAccessory(bellName, bellUuid, 18);
         this.bell = new DoorbellAccessory(this.log, this.config, this.api, bellAccessory);
         this.api.publishExternalAccessories('homebridge-wallpad', [bellAccessory]);
-
-        const lockName = this.config.lockName || '공동현관 문열기';
-        const lockUuid = this.api.hap.uuid.generate('homebridge-wallpad-lock');
-        const lockAccessory = new this.api.platformAccessory(lockName, lockUuid, 6);
-        this.lock = new DoorLockAccessory(this.log, this.config, this.api, lockAccessory, this);
-        this.api.publishExternalAccessories('homebridge-wallpad', [lockAccessory]);
 
         // this.connectToEW11();
     }
@@ -66,5 +60,8 @@ class WallpadPlatform {
         return false;
     }
 
-    accessories(callback) { callback([]); }
+    accessories(callback) {
+        const name = this.config.lockName || 'Doorlock';
+        this.lock = new DoorLockAccessory(this.log, this.config, this.api, name, this);
+        callback([this.lock]); }
 }

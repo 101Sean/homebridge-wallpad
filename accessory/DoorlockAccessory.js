@@ -8,36 +8,31 @@ class DoorLockAccessory {
         this.Characteristic = api.hap.Characteristic;
 
         this.lockState = 1; // Locked
-        this.setupService();
-    }
 
-    setupService() {
-        this.service = this.accessory.getService(this.Service.LockMechanism) ||
-            this.accessory.addService(this.Service.LockMechanism, '현관문');
-
-        this.service.getCharacteristic(this.Characteristic.LockTargetState)
+        this.lockService = new this.Service.LockMechanism(this.name);
+        this.lockService.getCharacteristic(this.Characteristic.LockTargetState)
             .onSet(this.handleLockSet.bind(this))
             .onGet(() => this.lockState);
-
-        this.service.getCharacteristic(this.Characteristic.LockCurrentState)
+        this.lockService.getCharacteristic(this.Characteristic.LockCurrentState)
             .onGet(() => this.lockState);
     }
 
     async handleLockSet(value) {
         if (value === 0) {
-            this.log.info('🔓 공동현관 개방 명령 실행');
-            const packet = this.config.openPacket || 'AA550102000103';
-            this.platform.sendPacket(packet);
-
+            this.log.info('🔓 문 열림 패킷 전송');
+            this.platform.sendPacket(this.config.openPacket || 'AA550102000103');
             this.lockState = 0;
-            this.service.updateCharacteristic(this.Characteristic.LockCurrentState, 0);
-
+            this.lockService.updateCharacteristic(this.Characteristic.LockCurrentState, 0);
             setTimeout(() => {
                 this.lockState = 1;
-                this.service.updateCharacteristic(this.Characteristic.LockCurrentState, 1);
-                this.service.getCharacteristic(this.Characteristic.LockTargetState).updateValue(1);
+                this.lockService.updateCharacteristic(this.Characteristic.LockCurrentState, 1);
+                this.lockService.getCharacteristic(this.Characteristic.LockTargetState).updateValue(1);
             }, 3000);
         }
+    }
+
+    getServices() {
+        return [this.lockService];
     }
 }
 
