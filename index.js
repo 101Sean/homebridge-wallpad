@@ -1,4 +1,6 @@
 const net = require('net');
+const DoorbellAccessory = require('./accessory/DoorbellAccessory');
+const DoorLockAccessory = require('./accessory/DoorlockAccessory');
 
 module.exports = (api) => {
     api.registerPlatform('homebridge-wallpad', 'WallpadPlatform', WallpadPlatform);
@@ -9,108 +11,59 @@ class WallpadPlatform {
         this.log = log;
         this.config = config;
         this.api = api;
-
-        if (!config) return;
-        this.log.info('공동현관 플랫폼 초기화 완료');
-    }
-
-    accessories(callback) {
-        const name = this.config.name || 'APT Entrance Bell';
-        const accessory = new WallpadAccessory(this.log, this.config, this.api, name);
-        callback([accessory]);
-    }
-}
-
-class WallpadAccessory {
-    constructor(log, config, api, name) {
-        this.log = log;
-        this.config = config;
-        this.api = api;
-        this.name = name;
-        this.displayName = name;
-
-        this.Service = api.hap.Service;
-        this.Characteristic = api.hap.Characteristic;
-
-        this.lockState = 1;
         this.tcpClient = null;
 
-        this.setupServices();
-        // this.connectToEW11();
+        if (!config) return;
+
+        this.api.on('didFinishLaunching', () => {
+            this.publishExternalAccessory();
+        });
     }
 
-    setupServices() {
-        this.infoService = new this.Service.AccessoryInformation()
-            .setCharacteristic(this.Characteristic.Manufacturer, 'Samsung-DIY')
-            .setCharacteristic(this.Characteristic.Model, 'EW11-Stateless-Doorbell');
+    publishExternalAccessory() {
+        const name = this.config.name || '공동현관 시스템';
+        const uuid = this.api.hap.uuid.generate('homebridge-wallpad-external-v1');
 
-        this.lockService = new this.Service.LockMechanism(this.name);
-        this.lockService.getCharacteristic(this.Characteristic.LockTargetState)
-            .onSet(this.handleLockTargetStateSet.bind(this))
-            .onGet(() => this.lockState);
-        this.lockService.getCharacteristic(this.Characteristic.LockCurrentState)
-            .onGet(() => this.lockState);
+        const accessory = new this.api.platformAccessory(name, uuid, 18);
 
-        this.doorbellService = new this.Service.Doorbell(this.name + ' 호출');
+        this.bell = new DoorbellAccessory(this.log, this.config, this.api, accessory);
+        this.lock = new DoorLockAccessory(this.log, this.config, this.api, accessory, this);
 
-        this.doorbellService.getCharacteristic(this.Characteristic.ProgrammableSwitchEvent)
-            .setProps({
-                maxValue: 0
-            });
+        this.api.publishExternalAccessories('homebridge-wallpad', [accessory]);
+        this.log.info(`[External] '${name}' 배포 완료. 홈앱에서 [액세서리 추가]를 통해 직접 등록하세요.`);
+
+        // this.connectToEW11();
     }
 
     connectToEW11() {
         const host = this.config.ip;
         const port = this.config.port || 8899;
 
-        if (!host) {
-            this.log.error('설정에서 유효한 IP 주소를 입력해주세요.');
-            return;
-        }
-
         this.tcpClient = new net.Socket();
         this.tcpClient.connect(port, host, () => {
-            this.log.info(`[연결 성공] EW11 감시 중: ${host}:${port}`);
+            this.log.info(`[연결] EW11 감시 시작 (${host}:${port})`);
         });
 
         this.tcpClient.on('data', (data) => {
             const hexData = data.toString('hex').toUpperCase();
             if (hexData.includes('AA55010108')) {
-                this.log.info('🔔 벨 호출 감지! (Stateless Switch Event 0 전송)');
-                this.doorbellService.getCharacteristic(this.Characteristic.ProgrammableSwitchEvent)
-                    .updateValue(0);
+                if (this.bell) this.bell.trigger();
             }
         });
 
         this.tcpClient.on('error', (err) => this.log.error(`[TCP 에러] ${err.message}`));
         this.tcpClient.on('close', () => {
-            this.log.warn('TCP 연결 종료. 10초 후 재접속 시도...');
             setTimeout(() => this.connectToEW11(), 10000);
         });
     }
 
-    async handleLockTargetStateSet(value) {
-        if (value === 0) {
-            this.log.info('[명령] 공동현관 개방 패킷 전송');
-            /*
-            const packet = this.config.openPacket || 'AA550102000103';
-            if (this.tcpClient && !this.tcpClient.destroyed) {
-                this.tcpClient.write(Buffer.from(packet, 'hex'));
-            }
-            */
-
-            this.lockState = 0;
-            this.lockService.updateCharacteristic(this.Characteristic.LockCurrentState, 0);
-
-            setTimeout(() => {
-                this.lockState = 1;
-                this.lockService.updateCharacteristic(this.Characteristic.LockCurrentState, 1);
-                this.lockService.updateCharacteristic(this.Characteristic.LockTargetState, 1);
-            }, 3000);
+    sendPacket(packet) {
+        if (this.tcpClient && !this.tcpClient.destroyed) {
+            this.tcpClient.write(Buffer.from(packet, 'hex'));
+            return true;
         }
+        return false;
     }
 
-    getServices() {
-        return [this.infoService, this.lockService, this.doorbellService];
-    }
+    accessories(callback) { callback([]); }
 }
