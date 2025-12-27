@@ -2,17 +2,25 @@ class DoorLockAccessory {
     constructor(log, config, api, accessory, platform) {
         this.log = log;
         this.config = config;
-        this.accessory = accessory;
+        this.api = api;
         this.platform = platform;
         this.Service = api.hap.Service;
         this.Characteristic = api.hap.Characteristic;
 
+        this.name = name;
+        this.displayName = name;
         this.lockState = 1; // Locked
 
+        this.setupLockService();
+    }
+
+    setupLockService() {
         this.lockService = new this.Service.LockMechanism(this.name);
+
         this.lockService.getCharacteristic(this.Characteristic.LockTargetState)
             .onSet(this.handleLockSet.bind(this))
             .onGet(() => this.lockState);
+
         this.lockService.getCharacteristic(this.Characteristic.LockCurrentState)
             .onGet(() => this.lockState);
     }
@@ -32,7 +40,11 @@ class DoorLockAccessory {
     }
 
     getServices() {
-        return [this.lockService];
+        const informationService = new this.Service.AccessoryInformation()
+            .setCharacteristic(this.Characteristic.Manufacturer, 'Custom')
+            .setCharacteristic(this.Characteristic.Model, 'Wallpad Lock');
+
+        return [informationService, this.lockService];
     }
 }
 
