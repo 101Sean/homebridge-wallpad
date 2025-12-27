@@ -1,15 +1,16 @@
 class DoorLockAccessory {
-    constructor(log, config, api, accessory, platform) {
+    constructor(log, config, api, name, platform) {
         this.log = log;
         this.config = config;
         this.api = api;
         this.platform = platform;
-        this.Service = api.hap.Service;
-        this.Characteristic = api.hap.Characteristic;
 
         this.name = name;
         this.displayName = name;
         this.lockState = 1; // Locked
+
+        this.Service = api.hap.Service;
+        this.Characteristic = api.hap.Characteristic;
 
         this.setupLockService();
     }

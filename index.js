@@ -63,5 +63,6 @@ class WallpadPlatform {
     accessories(callback) {
         const name = this.config.lockName || 'Doorlock';
         this.lock = new DoorLockAccessory(this.log, this.config, this.api, name, this);
-        callback([this.lock]); }
+        callback([this.lock]);
+    }
 }
