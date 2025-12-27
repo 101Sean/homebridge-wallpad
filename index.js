@@ -36,7 +36,7 @@ class WallpadAccessory {
         this.tcpClient = null;
 
         this.setupServices();
-        //임시 this.connectToEW11();
+        //this.connectToEW11();
     }
 
     setupServices() {
@@ -88,8 +88,7 @@ class WallpadAccessory {
     async handleLockTargetStateSet(value) {
         if (value === 0) {
             this.log.info('[명령] 공동현관 개방 패킷 전송');
-            /* 임시
-            const packet = this.config.openPacket || 'AA550102000103';
+            /*const packet = this.config.openPacket || 'AA550102000103';
             if (this.tcpClient && !this.tcpClient.destroyed) {
                 this.tcpClient.write(Buffer.from(packet, 'hex'));
             }*/
