@@ -1,7 +1,7 @@
 const net = require('net');
 
 module.exports = (api) => {
-    api.registerPlatform('WallpadPlatform', WallpadPlatform);
+    api.registerPlatform('homebridge-wallpad', 'WallpadPlatform', WallpadPlatform);
 };
 
 class WallpadPlatform {
