@@ -15,7 +15,7 @@ class WallpadPlatform {
     }
 
     accessories(callback) {
-        const name = this.config.name || 'APT Entrance';
+        const name = this.config.name || 'Door';
         const accessory = new WallpadAccessory(this.log, this.config, this.api, name);
         callback([accessory]);
     }
@@ -36,7 +36,7 @@ class WallpadAccessory {
         this.tcpClient = null;
 
         this.setupServices();
-        this.connectToEW11();
+        //this.connectToEW11();
     }
 
     setupServices() {
@@ -51,9 +51,8 @@ class WallpadAccessory {
         this.lockService.getCharacteristic(this.Characteristic.LockCurrentState)
             .onGet(() => this.lockState);
 
-        this.doorbellService = new this.Service.Doorbell(this.name + ' 호출');
+        this.doorbellService = new this.Service.Doorbell(this.name + ' Bell');
         this.doorbellService.getCharacteristic(this.Characteristic.ProgrammableSwitchEvent);
-        this.lockService.addLinkedService(this.doorbellService);
     }
 
     connectToEW11() {
@@ -73,8 +72,9 @@ class WallpadAccessory {
         this.tcpClient.on('data', (data) => {
             const hexData = data.toString('hex').toUpperCase();
             if (hexData.includes('AA55010108')) {
-                this.log.info('🔔 벨 호출 감지! 아이폰 팝업 전송');
-                this.doorbellService.getCharacteristic(this.Characteristic.ProgrammableSwitchEvent).updateValue(0);
+                this.log.info('🔔 벨 호출 감지! 아이폰 알림 전송 시작');
+                this.doorbellService.getCharacteristic(this.Characteristic.ProgrammableSwitchEvent)
+                    .updateValue(0);
             }
         });
 
@@ -88,10 +88,10 @@ class WallpadAccessory {
     async handleLockTargetStateSet(value) {
         if (value === 0) {
             this.log.info('[명령] 공동현관 개방 패킷 전송');
-            const packet = this.config.openPacket || 'AA550102000103';
+            /*const packet = this.config.openPacket || 'AA550102000103';
             if (this.tcpClient && !this.tcpClient.destroyed) {
                 this.tcpClient.write(Buffer.from(packet, 'hex'));
-            }
+            }*/
 
             this.lockState = 0;
             this.lockService.updateCharacteristic(this.Characteristic.LockCurrentState, 0);
