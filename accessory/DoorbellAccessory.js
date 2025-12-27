@@ -10,9 +10,18 @@ class DoorbellAccessory {
 
     setupService() {
         this.service = this.accessory.getService(this.Service.Doorbell) ||
-            this.accessory.addService(this.Service.Doorbell, '초인종');
+            this.accessory.addService(this.Service.Doorbell, 'Bell');
 
-        this.service.getCharacteristic(this.Characteristic.ProgrammableSwitchEvent);
+        const streamManagement = this.accessory.getService(this.Service.CameraRTPStreamManagement) ||
+            this.accessory.addService(this.Service.CameraRTPStreamManagement, 'Camera');
+
+        const micService = this.accessory.getService(this.Service.Microphone) ||
+            this.accessory.addService(this.Service.Microphone, 'Mic');
+
+        const speakerService = this.accessory.getService(this.Service.Speaker) ||
+            this.accessory.addService(this.Service.Speaker, 'Speaker');
+
+        this.log.info('[Service] 초기화 완료');
     }
 
     trigger() {
