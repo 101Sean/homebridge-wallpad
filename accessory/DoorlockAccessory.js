@@ -21,12 +21,6 @@ class DoorLockAccessory {
 
         this.service.getCharacteristic(this.Characteristic.LockCurrentState)
             .onGet(() => this.lockState);
-
-        // [핵심] 초인종 서비스와 자물쇠 서비스를 논리적으로 연결 (링크)
-        const doorbell = this.accessory.getService(this.Service.Doorbell);
-        if (doorbell) {
-            doorbell.addLinkedService(this.service);
-        }
     }
 
     async handleLockSet(value) {
@@ -38,7 +32,6 @@ class DoorLockAccessory {
             this.lockState = 0;
             this.service.updateCharacteristic(this.Characteristic.LockCurrentState, 0);
 
-            // 3초 후 잠김 상태로 자동 복귀
             setTimeout(() => {
                 this.lockState = 1;
                 this.service.updateCharacteristic(this.Characteristic.LockCurrentState, 1);

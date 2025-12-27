@@ -21,16 +21,17 @@ class WallpadPlatform {
     }
 
     publishExternalAccessory() {
-        const name = this.config.name || '공동현관 시스템';
-        const uuid = this.api.hap.uuid.generate('homebridge-wallpad-external-v1');
+        const bellName = this.config.bellName || '공동현관 초인종';
+        const bellUuid = this.api.hap.uuid.generate('homebridge-wallpad-bell');
+        const bellAccessory = new this.api.platformAccessory(bellName, bellUuid, 18);
+        this.bell = new DoorbellAccessory(this.log, this.config, this.api, bellAccessory);
+        this.api.publishExternalAccessories('homebridge-wallpad', [bellAccessory]);
 
-        const accessory = new this.api.platformAccessory(name, uuid, 18);
-
-        this.bell = new DoorbellAccessory(this.log, this.config, this.api, accessory);
-        this.lock = new DoorLockAccessory(this.log, this.config, this.api, accessory, this);
-
-        this.api.publishExternalAccessories('homebridge-wallpad', [accessory]);
-        this.log.info(`[External] '${name}' 배포 완료. 홈앱에서 [액세서리 추가]를 통해 직접 등록하세요.`);
+        const lockName = this.config.lockName || '공동현관 문열기';
+        const lockUuid = this.api.hap.uuid.generate('homebridge-wallpad-lock');
+        const lockAccessory = new this.api.platformAccessory(lockName, lockUuid, 6);
+        this.lock = new DoorLockAccessory(this.log, this.config, this.api, lockAccessory, this);
+        this.api.publishExternalAccessories('homebridge-wallpad', [lockAccessory]);
 
         // this.connectToEW11();
     }
