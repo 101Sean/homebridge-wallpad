@@ -29,11 +29,16 @@ class DoorLockAccessory {
     async handleLockSet(value) {
         if (value === 0) {
             this.log.info('🔓 문 열림 패킷 전송');
-            this.platform.sendPacket(this.config.openPacket || 'b2710fb3710eb47109b57108b6710bb7710ab871');
-            this.lockState = 0;
-            this.lockService.updateCharacteristic(this.Characteristic.LockCurrentState, 0);
+            const packet = (this.config.openPacket || 'b2710fb3710eb47109b57108b6710bb7710ab871').toLowerCase();
+            const success = this.platform.sendPacket(packet);
+
+            if (success) {
+                this.lockState = 0;
+                this.lockService.updateCharacteristic(this.Characteristic.LockCurrentState, 0);
+            }
+
             setTimeout(() => {
-                this.lockState = 1;
+                this.lockState = 1; // Locked
                 this.lockService.updateCharacteristic(this.Characteristic.LockCurrentState, 1);
                 this.lockService.getCharacteristic(this.Characteristic.LockTargetState).updateValue(1);
             }, 3000);
