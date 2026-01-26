@@ -29,7 +29,7 @@ class DoorLockAccessory {
     async handleLockSet(value) {
         if (value === 0) {
             this.log.info('🔓 문 열림 패킷 전송');
-            this.platform.sendPacket(this.config.openPacket || 'AA550102000103');
+            this.platform.sendPacket(this.config.openPacket || 'b2710fb3710eb47109b57108b6710bb7710ab871');
             this.lockState = 0;
             this.lockService.updateCharacteristic(this.Characteristic.LockCurrentState, 0);
             setTimeout(() => {
@@ -43,7 +43,8 @@ class DoorLockAccessory {
     getServices() {
         const informationService = new this.Service.AccessoryInformation()
             .setCharacteristic(this.Characteristic.Manufacturer, 'Custom')
-            .setCharacteristic(this.Characteristic.Model, 'Wallpad Lock');
+            .setCharacteristic(this.Characteristic.Model, 'Wallpad Lock')
+            .setCharacteristic(this.Characteristic.SerialNumber, '192.168.0.79');
 
         return [informationService, this.lockService];
     }

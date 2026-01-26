@@ -27,11 +27,11 @@ class WallpadPlatform {
         this.bell = new DoorbellAccessory(this.log, this.config, this.api, bellAccessory);
         this.api.publishExternalAccessories('homebridge-wallpad', [bellAccessory]);
 
-        // this.connectToEW11();
+        this.connectToEW11();
     }
 
     connectToEW11() {
-        const host = this.config.ip;
+        const host = this.config.ip || '192.168.0.79';
         const port = this.config.port || 8899;
 
         this.tcpClient = new net.Socket();
@@ -41,7 +41,7 @@ class WallpadPlatform {
 
         this.tcpClient.on('data', (data) => {
             const hexData = data.toString('hex').toUpperCase();
-            if (hexData.includes('AA55010108')) {
+            if (hexData.includes('330000068033')) {
                 if (this.bell) this.bell.trigger();
             }
         });
