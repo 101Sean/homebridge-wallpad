@@ -39,26 +39,33 @@ class WallpadPlatform {
     connectToEW11() {
         const host = this.config.ip || '192.168.0.79';
         const port = this.config.port || 8899;
-        const bellPacket = (this.config.bellPacket || '33000006803300088833').toLowerCase().replace(/\s/g, '');
+        const bellPacket = (this.config.bellPacket || '06803300088833').toLowerCase().replace(/\s/g, '');
 
         if (this.tcpClient) {
             this.tcpClient.destroy();
             this.tcpClient.removeAllListeners();
         }
+
         this.tcpClient = new net.Socket();
+        this.dataBuffer = "";
 
         this.tcpClient.connect(port, host, () => {
             this.log.info(`[연결] EW11 감시 시작 (${host}:${port})`);
         });
 
         this.tcpClient.on('data', (data) => {
-            const hexData = data.toString('hex').toLowerCase();
-            // this.log.debug(`[수신] ${hexData}`);
-            if (hexData.includes(bellPacket)) {
+            this.dataBuffer += data.toString('hex').toLowerCase();
+
+            if (this.dataBuffer.length > 100) {
+                this.dataBuffer = this.dataBuffer.slice(-100);
+            }
+
+            if (this.dataBuffer.includes(bellPacket)) {
                 const now = Date.now();
-                if (now - this.lastBellTime > 3000) {
+                if (now - this.lastBellTime > 5000) {
                     if (this.bell) this.bell.trigger();
                     this.lastBellTime = now;
+                    this.dataBuffer = "";
                 }
             }
         });
