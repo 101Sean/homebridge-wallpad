@@ -7,7 +7,6 @@ class DoorLockAccessory {
 
         this.name = name;
         this.displayName = name;
-        this.service = new this.Service.LockMechanism(this.name);
         this.lockState = 1;
 
         this.Service = api.hap.Service;
