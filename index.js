@@ -42,39 +42,47 @@ class WallpadPlatform {
         const bellPacket = (this.config.bellPacket || '418efcd6').toLowerCase().replace(/\s/g, '');
 
         this.tcpClient = new net.Socket();
+        this.tcpClient.setTimeout(60000);
         this.tcpClient.connect(port, ip, () => this.log.info(`[연결 성공] EW11 (${ip}:${port})`));
 
         this.tcpClient.on('data', (data) => {
-            this.dataBuffer += data.toString('hex').toLowerCase();
-            let packets = this.dataBuffer.split('ffffef');
-            this.dataBuffer = packets.pop();
+            const hexChunk = data.toString('hex').toLowerCase();
+            this.dataBuffer += hexChunk;
 
-            packets.forEach((packet) => {
-                const fullPacket = packet + 'ffffef';
-                if (fullPacket.includes(bellPacket)) {
-                    const now = Date.now();
-                    if (!this.recentBellPackets) this.recentBellPackets = [];
-                    this.recentBellPackets.push(now);
-                    this.recentBellPackets = this.recentBellPackets.filter(time => now - time < 3000);
+            this.log.debug(`[수신 데이터]: ${hexChunk}`);
 
-                    // 3초 안에 동일 패킷이 3번 이상
-                    if (this.recentBellPackets.length >= 3) {
-                        if (now - this.lastBellTime > 20000) {
-                            this.log.debug(`감지된 패킷: ${fullPacket}`);
+            if (this.dataBuffer.includes(bellPacket)) {
+                const now = Date.now();
+                if (!this.recentBellPackets) this.recentBellPackets = [];
+                this.recentBellPackets.push(now);
+                this.recentBellPackets = this.recentBellPackets.filter(time => now - time < 3000);
 
-                            if (this.bell) this.bell.trigger();
-                            this.lastBellTime = now;
-                            this.recentBellPackets = [];
-                        }
+                if (this.recentBellPackets.length >= 3) {
+                    if (now - this.lastBellTime > 20000) {
+                        this.log.info(`[Bell] 호출 감지: ${fullPacket}`);
+                        if (this.bell) this.bell.trigger();
+                        this.lastBellTime = now;
+                        this.recentBellPackets = [];
                     }
                 }
-            });
 
-            if (this.dataBuffer.length > 1000 ) this.dataBuffer = this.dataBuffer.slice(-500);
+                const index = this.dataBuffer.indexOf(bellPacket);
+                this.dataBuffer = this.dataBuffer.slice(index + bellPacket.length);
+            }
+
+            // 버퍼 무한 증식 방지
+            if (this.dataBuffer.length > 500)  this.dataBuffer = this.dataBuffer.slice(-200);
         });
 
-        this.tcpClient.on('error', (err) => this.log.error(`[TCP 에러] ${err.message}`));
+        this.tcpClient.on('timeout', () => {
+            this.log.warn('[Timeout] 소켓을 재연결합니다.');
+            this.tcpClient.destroy();
+        });
+        this.tcpClient.on('error', (err) => {
+            this.log.error(`[TCP 에러] ${err.message}`);
+        });
         this.tcpClient.on('close', () => {
+            this.log.warn('[연결 종료] 10초 후 재연결을 시도합니다.');
             setTimeout(() => this.connectToEW11(), 10000);
         });
     }

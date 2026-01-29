@@ -25,7 +25,7 @@ class DoorbellAccessory {
     }
 
     trigger() {
-        this.log.info('🔔 초인종 이벤트 발생!');
+        this.log.info('🔔 초인종 이벤트 발생');
         this.service.getCharacteristic(this.Characteristic.ProgrammableSwitchEvent).updateValue(0);
     }
 }
