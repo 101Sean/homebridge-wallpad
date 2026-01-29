@@ -52,18 +52,17 @@ class WallpadPlatform {
             if (bellPacket && this.dataBuffer.includes(bellPacket)) {
                 const now = Date.now();
 
-                if (now - this.lastBellTime > 15000) {
+                if (now - this.lastBellTime > 5000) {
                     this.log.info('🔔 [호출 감지] 벨 호출 패킷을 포착했습니다.');
                     if (this.bell) this.bell.trigger();
                     this.lastBellTime = now;
                 }
 
-                const index = this.dataBuffer.indexOf(bellPacket);
-                this.dataBuffer = this.dataBuffer.slice(index + bellPacket.length);
+                this.dataBuffer = "";
             }
 
             // 버퍼 무한증식 방지
-            if (this.dataBuffer.length > 1000) this.dataBuffer = this.dataBuffer.slice(-500);
+            if (this.dataBuffer.length > 500) this.dataBuffer = this.dataBuffer.slice(-100);
         });
 
         this.tcpClient.on('timeout', () => {

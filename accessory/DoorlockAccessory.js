@@ -36,10 +36,11 @@ class DoorLockAccessory {
                 return;
             }
 
-            // 0.7초 2회
+            // 0.3초 3회
             this.platform.sendPacket(packet);
-            setTimeout(() => this.platform.sendPacket(packet), 700);
-
+            setTimeout(() => this.platform.sendPacket(packet), 300);
+            setTimeout(() => this.platform.sendPacket(packet), 600);
+            
             this.lockState = 0;
             this.lockService.updateCharacteristic(this.Characteristic.LockCurrentState, 0);
 
