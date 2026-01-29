@@ -55,11 +55,13 @@ class WallpadPlatform {
                     const now = Date.now();
                     if (!this.recentBellPackets) this.recentBellPackets = [];
                     this.recentBellPackets.push(now);
-                    this.recentBellPackets = this.recentBellPackets.filter(time => now - time < 2000);
+                    this.recentBellPackets = this.recentBellPackets.filter(time => now - time < 3000);
 
-                    // 2초 안에 동일 패킷이 3번 이상
+                    // 3초 안에 동일 패킷이 3번 이상
                     if (this.recentBellPackets.length >= 3) {
-                        if (now - this.lastBellTime > 15000) {
+                        if (now - this.lastBellTime > 20000) {
+                            this.log.debug(`감지된 패킷: ${fullPacket}`);
+
                             if (this.bell) this.bell.trigger();
                             this.lastBellTime = now;
                             this.recentBellPackets = [];

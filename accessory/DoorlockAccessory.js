@@ -33,8 +33,8 @@ class DoorLockAccessory {
 
             // 3회 (Burst)
             this.platform.sendPacket(packet);
-            setTimeout(() => this.platform.sendPacket(packet), 200);
-            setTimeout(() => this.platform.sendPacket(packet), 400);
+            setTimeout(() => this.platform.sendPacket(packet), 500);
+            setTimeout(() => this.platform.sendPacket(packet), 1000);
 
             this.lockState = 0;
             this.lockService.updateCharacteristic(this.Characteristic.LockCurrentState, 0);
