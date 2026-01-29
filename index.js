@@ -12,6 +12,7 @@ class WallpadPlatform {
         this.config = config;
         this.api = api;
         this.tcpClient = null;
+        this.dataBuffer = "";
         this.lastBellTime = 0;
 
         if (!config) return;
@@ -37,37 +38,30 @@ class WallpadPlatform {
     }
 
     connectToEW11() {
-        const host = this.config.ip || '192.168.0.79';
-        const port = this.config.port || 8899;
-        const bellPacket = (this.config.bellPacket || '06803300088833').toLowerCase().replace(/\s/g, '');
-
-        if (this.tcpClient) {
-            this.tcpClient.destroy();
-            this.tcpClient.removeAllListeners();
-        }
+        const { ip = '192.168.0.79', port = 8899 } = this.config;
+        const bellPacket = (this.config.bellPacket || '418efcd6').toLowerCase().replace(/\s/g, '');
 
         this.tcpClient = new net.Socket();
-        this.dataBuffer = "";
-
-        this.tcpClient.connect(port, host, () => {
-            this.log.info(`[연결] EW11 감시 시작 (${host}:${port})`);
-        });
+        this.tcpClient.connect(port, ip, () => this.log.info(`[연결 성공] EW11 (${ip}:${port})`));
 
         this.tcpClient.on('data', (data) => {
             this.dataBuffer += data.toString('hex').toLowerCase();
 
-            if (this.dataBuffer.length > 100) {
-                this.dataBuffer = this.dataBuffer.slice(-100);
-            }
+            let packets = this.dataBuffer.split('ffffef');
+            this.dataBuffer = packets.pop();
 
-            if (this.dataBuffer.includes(bellPacket)) {
-                const now = Date.now();
-                if (now - this.lastBellTime > 5000) {
-                    if (this.bell) this.bell.trigger();
-                    this.lastBellTime = now;
-                    this.dataBuffer = "";
+            packets.forEach((packet) => {
+                const fullPacket = packet + 'ffffef';
+                if (fullPacket.includes(bellPacket)) {
+                    const now = Date.now();
+                    if (now - this.lastBellTime > 5000) {
+                        if (this.bell) this.bell.trigger();
+                        this.lastBellTime = now;
+                    }
                 }
-            }
+            });
+
+            if (this.dataBuffer.length > 1000 ) this.dataBuffer = this.dataBuffer.slice(-500);
         });
 
         this.tcpClient.on('error', (err) => this.log.error(`[TCP 에러] ${err.message}`));
@@ -80,6 +74,7 @@ class WallpadPlatform {
         if (this.tcpClient && !this.tcpClient.destroyed) {
             const cleanPacket = packet.toLowerCase().replace(/\s/g, '');
             this.tcpClient.write(Buffer.from(cleanPacket, 'hex'));
+            this.log.debug(`📤 패킷 전송: ${cleanPacket}`);
             return true;
         }
         this.log.error('[전송 실패] EW11 연결 확인 필요');

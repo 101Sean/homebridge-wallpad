@@ -7,7 +7,8 @@ class DoorLockAccessory {
 
         this.name = name;
         this.displayName = name;
-        this.lockState = 1; // Locked
+        this.service = new this.Service.LockMechanism(this.name);
+        this.lockState = 1;
 
         this.Service = api.hap.Service;
         this.Characteristic = api.hap.Characteristic;
@@ -28,19 +29,19 @@ class DoorLockAccessory {
 
     async handleLockSet(value) {
         if (value === 0) {
-            this.log.info('🔓 문 열림 패킷 전송');
-            const packet = (this.config.openPacket || 'b2710fb3710eb47109b57108b6710bb7710ab871').toLowerCase();
-            const success = this.platform.sendPacket(packet);
+            this.log.info('🔓 문 열림 요청 전송');
+            const packet = (this.config.openPacket || 'c7fcdcfe2bc7fcd4fc15').toLowerCase();
 
-            if (success) {
-                this.lockState = 0;
-                this.lockService.updateCharacteristic(this.Characteristic.LockCurrentState, 0);
-            }
+            this.platform.sendPacket(packet);
+            setTimeout(() => this.platform.sendPacket(packet), 300);
+
+            this.lockState = 0;
+            this.service.updateCharacteristic(this.Characteristic.LockCurrentState, 0);
 
             setTimeout(() => {
-                this.lockState = 1; // Locked
-                this.lockService.updateCharacteristic(this.Characteristic.LockCurrentState, 1);
-                this.lockService.getCharacteristic(this.Characteristic.LockTargetState).updateValue(1);
+                this.lockState = 1;
+                this.service.updateCharacteristic(this.Characteristic.LockCurrentState, 1);
+                this.service.updateCharacteristic(this.Characteristic.LockTargetState, 1);
             }, 3000);
         }
     }
