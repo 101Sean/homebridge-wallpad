@@ -59,7 +59,6 @@ class WallpadPlatform {
 
                 if (this.recentBellPackets.length >= 3) {
                     if (now - this.lastBellTime > 20000) {
-                        this.log.info(`[Bell] 호출 감지: ${fullPacket}`);
                         if (this.bell) this.bell.trigger();
                         this.lastBellTime = now;
                         this.recentBellPackets = [];
