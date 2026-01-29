@@ -46,7 +46,6 @@ class WallpadPlatform {
 
         this.tcpClient.on('data', (data) => {
             this.dataBuffer += data.toString('hex').toLowerCase();
-
             let packets = this.dataBuffer.split('ffffef');
             this.dataBuffer = packets.pop();
 
@@ -54,9 +53,17 @@ class WallpadPlatform {
                 const fullPacket = packet + 'ffffef';
                 if (fullPacket.includes(bellPacket)) {
                     const now = Date.now();
-                    if (now - this.lastBellTime > 5000) {
-                        if (this.bell) this.bell.trigger();
-                        this.lastBellTime = now;
+                    if (!this.recentBellPackets) this.recentBellPackets = [];
+                    this.recentBellPackets.push(now);
+                    this.recentBellPackets = this.recentBellPackets.filter(time => now - time < 2000);
+
+                    // 2초 안에 동일 패킷이 3번 이상
+                    if (this.recentBellPackets.length >= 3) {
+                        if (now - this.lastBellTime > 15000) {
+                            if (this.bell) this.bell.trigger();
+                            this.lastBellTime = now;
+                            this.recentBellPackets = [];
+                        }
                     }
                 }
             });

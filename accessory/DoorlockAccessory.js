@@ -31,8 +31,10 @@ class DoorLockAccessory {
             this.log.info('🔓 문 열림 요청 전송');
             const packet = (this.config.openPacket || 'c7fcdcfe2bc7fcd4fc15').toLowerCase();
 
+            // 3회 (Burst)
             this.platform.sendPacket(packet);
-            setTimeout(() => this.platform.sendPacket(packet), 300);
+            setTimeout(() => this.platform.sendPacket(packet), 200);
+            setTimeout(() => this.platform.sendPacket(packet), 400);
 
             this.lockState = 0;
             this.lockService.updateCharacteristic(this.Characteristic.LockCurrentState, 0);
