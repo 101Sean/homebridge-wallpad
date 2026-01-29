@@ -29,12 +29,16 @@ class DoorLockAccessory {
     async handleLockSet(value) {
         if (value === 0) {
             this.log.info('🔓 문 열림 요청 전송');
-            const packet = (this.config.openPacket || 'c7fcdcfe2bc7fcd4fc15').toLowerCase();
+            const packet = (this.config.openPacket || '').toLowerCase();
 
-            // 3회 (Burst)
+            if (!packet) {
+                this.log.error('설정에서 openPacket을 확인하세요.');
+                return;
+            }
+
+            // 0.7초 2회
             this.platform.sendPacket(packet);
-            setTimeout(() => this.platform.sendPacket(packet), 500);
-            setTimeout(() => this.platform.sendPacket(packet), 1000);
+            setTimeout(() => this.platform.sendPacket(packet), 700);
 
             this.lockState = 0;
             this.lockService.updateCharacteristic(this.Characteristic.LockCurrentState, 0);
@@ -43,7 +47,7 @@ class DoorLockAccessory {
                 this.lockState = 1;
                 this.lockService.updateCharacteristic(this.Characteristic.LockCurrentState, 1);
                 this.lockService.updateCharacteristic(this.Characteristic.LockTargetState, 1);
-            }, 3000);
+            }, 5000);
         }
     }
 

@@ -39,8 +39,6 @@ class WallpadPlatform {
 
     connectToEW11() {
         const { ip = '192.168.0.79', port = 8899 } = this.config;
-        const bellPacket = (this.config.bellPacket || '418efcd6').toLowerCase().replace(/\s/g, '');
-
         this.tcpClient = new net.Socket();
         this.tcpClient.setTimeout(60000);
         this.tcpClient.connect(port, ip, () => this.log.info(`[연결 성공] EW11 (${ip}:${port})`));
@@ -48,38 +46,31 @@ class WallpadPlatform {
         this.tcpClient.on('data', (data) => {
             const hexChunk = data.toString('hex').toLowerCase();
             this.dataBuffer += hexChunk;
+            //this.log.debug(`[수신 데이터]: ${hexChunk}`);
 
-            this.log.debug(`[수신 데이터]: ${hexChunk}`);
-
-            if (this.dataBuffer.includes(bellPacket)) {
+            const bellPacket = (this.config.bellPacket || '').toLowerCase().replace(/\s/g, '');
+            if (bellPacket && this.dataBuffer.includes(bellPacket)) {
                 const now = Date.now();
-                if (!this.recentBellPackets) this.recentBellPackets = [];
-                this.recentBellPackets.push(now);
-                this.recentBellPackets = this.recentBellPackets.filter(time => now - time < 3000);
 
-                if (this.recentBellPackets.length >= 3) {
-                    if (now - this.lastBellTime > 20000) {
-                        if (this.bell) this.bell.trigger();
-                        this.lastBellTime = now;
-                        this.recentBellPackets = [];
-                    }
+                if (now - this.lastBellTime > 15000) {
+                    this.log.info('🔔 [호출 감지] 벨 호출 패킷을 포착했습니다.');
+                    if (this.bell) this.bell.trigger();
+                    this.lastBellTime = now;
                 }
 
                 const index = this.dataBuffer.indexOf(bellPacket);
                 this.dataBuffer = this.dataBuffer.slice(index + bellPacket.length);
             }
 
-            // 버퍼 무한 증식 방지
-            if (this.dataBuffer.length > 500)  this.dataBuffer = this.dataBuffer.slice(-200);
+            // 버퍼 무한증식 방지
+            if (this.dataBuffer.length > 1000) this.dataBuffer = this.dataBuffer.slice(-500);
         });
 
         this.tcpClient.on('timeout', () => {
             this.log.warn('[Timeout] 소켓을 재연결합니다.');
             this.tcpClient.destroy();
         });
-        this.tcpClient.on('error', (err) => {
-            this.log.error(`[TCP 에러] ${err.message}`);
-        });
+        this.tcpClient.on('error', (err) => this.log.error(`[TCP 에러] ${err.message}`));
         this.tcpClient.on('close', () => {
             this.log.warn('[연결 종료] 10초 후 재연결을 시도합니다.');
             setTimeout(() => this.connectToEW11(), 10000);
