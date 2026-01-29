@@ -35,12 +35,12 @@ class DoorLockAccessory {
             setTimeout(() => this.platform.sendPacket(packet), 300);
 
             this.lockState = 0;
-            this.service.updateCharacteristic(this.Characteristic.LockCurrentState, 0);
+            this.lockService.updateCharacteristic(this.Characteristic.LockCurrentState, 0);
 
             setTimeout(() => {
                 this.lockState = 1;
-                this.service.updateCharacteristic(this.Characteristic.LockCurrentState, 1);
-                this.service.updateCharacteristic(this.Characteristic.LockTargetState, 1);
+                this.lockService.updateCharacteristic(this.Characteristic.LockCurrentState, 1);
+                this.lockService.updateCharacteristic(this.Characteristic.LockTargetState, 1);
             }, 3000);
         }
     }
