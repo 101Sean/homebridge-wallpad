@@ -48,6 +48,11 @@ class WallpadPlatform {
             this.dataBuffer += hexChunk;
             //this.log.debug(`[수신 데이터]: ${hexChunk}`);
 
+            const openPacket = (this.config.openPacket || '').toLowerCase().replace(/\s/g, '');
+            if (hexChunk.includes(openPacket)) {
+                this.log.debug(`⚠️ [송신 확인] 문열림 패킷이 선로에서 감지됨: ${hexChunk}`);
+            }
+
             const bellPacket = (this.config.bellPacket || '').toLowerCase().replace(/\s/g, '');
             if (bellPacket && this.dataBuffer.includes(bellPacket)) {
                 const now = Date.now();
