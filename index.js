@@ -43,13 +43,13 @@ class WallpadPlatform {
 
         this.tcpClient = new net.Socket();
         this.tcpClient.setTimeout(60000);
-        this.tcpClient.connect(port, ip, () => this.log.debug(`[연결 성공] EW11 (${ip}:${port})`));
+        this.tcpClient.connect(port, ip, () => this.log.info(`[연결 성공] EW11 (${ip}:${port})`));
 
         this.tcpClient.on('data', (data) => {
             const hexChunk = data.toString('hex').toLowerCase();
             this.dataBuffer += hexChunk;
 
-            if (this.config.debugMode) this.log.info(`[RAW DATA]: ${hexChunk}`);
+            if (this.config.debugMode) this.log.debug(`[RAW DATA]: ${hexChunk}`);
 
             const bellPacket = (this.config.bellPacket || '').toLowerCase().replace(/\s/g, '');
             if (bellPacket && this.dataBuffer.includes(bellPacket)) {
