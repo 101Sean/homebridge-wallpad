@@ -42,6 +42,7 @@ class WallpadPlatform {
         const port = this.config.port || 8899;
 
         this.tcpClient = new net.Socket();
+        this.tcpClient.setNoDelay(true);
         this.tcpClient.setTimeout(60000);
         this.tcpClient.connect(port, ip, () => this.log.info(`[연결 성공] EW11 (${ip}:${port})`));
 

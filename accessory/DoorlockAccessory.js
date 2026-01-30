@@ -38,12 +38,14 @@ class DoorLockAccessory {
 
             const repeat = this.config.repeat || 4;
             const delay = this.config.delay || 200;
-            for (let i = 0; i < repeat; i++) {
-                setTimeout(() => {
+            const sendAction = async () => {
+                for (let i = 0; i < repeat; i++) {
                     this.platform.sendPacket(packet);
-                }, i * delay);
-            }
-            
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
+            };
+            sendAction();
+
             this.lockState = 0;
             this.lockService.updateCharacteristic(this.Characteristic.LockCurrentState, 0);
 
