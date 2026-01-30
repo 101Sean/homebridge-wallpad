@@ -38,7 +38,9 @@ class WallpadPlatform {
     }
 
     connectToEW11() {
-        const { ip = '192.168.0.79', port = 8899 } = this.config;
+        const ip = this.config.ip || '192.168.0.79';
+        const port = this.config.port || 8899;
+
         this.tcpClient = new net.Socket();
         this.tcpClient.setTimeout(60000);
         this.tcpClient.connect(port, ip, () => this.log.info(`[연결 성공] EW11 (${ip}:${port})`));
@@ -46,28 +48,29 @@ class WallpadPlatform {
         this.tcpClient.on('data', (data) => {
             const hexChunk = data.toString('hex').toLowerCase();
             this.dataBuffer += hexChunk;
-            //this.log.debug(`[수신 데이터]: ${hexChunk}`);
 
-            const openPacket = (this.config.openPacket || '').toLowerCase().replace(/\s/g, '');
-            if (hexChunk.includes(openPacket)) {
-                this.log.debug(`⚠️ [송신 확인] 문열림 패킷이 선로에서 감지됨: ${hexChunk}`);
-            }
+            if (this.config.debugMode) this.log.info(`[RAW DATA]: ${hexChunk}`);
 
             const bellPacket = (this.config.bellPacket || '').toLowerCase().replace(/\s/g, '');
             if (bellPacket && this.dataBuffer.includes(bellPacket)) {
                 const now = Date.now();
-
                 if (now - this.lastBellTime > 5000) {
-                    this.log.info('🔔 [호출 감지] 벨 호출 패킷을 포착했습니다.');
+                    this.log.info('🔔 [호출 감지] 벨 호출 패킷을 포착했습니다!');
                     if (this.bell) this.bell.trigger();
                     this.lastBellTime = now;
                 }
-
-                this.dataBuffer = "";
+                const bIdx = this.dataBuffer.indexOf(bellPacket);
+                this.dataBuffer = this.dataBuffer.slice(bIdx + bellPacket.length);
             }
 
-            // 버퍼 무한증식 방지
-            if (this.dataBuffer.length > 500) this.dataBuffer = this.dataBuffer.slice(-100);
+            const openPacket = (this.config.openPacket || '').toLowerCase().replace(/\s/g, '');
+            if (openPacket && this.dataBuffer.includes(openPacket)) {
+                this.log.debug(`⚠️ [송신 확인] 문열림 신호가 선로에서 감지됨`);
+                const oIdx = this.dataBuffer.indexOf(openPacket);
+                this.dataBuffer = this.dataBuffer.slice(oIdx + openPacket.length);
+            }
+
+            if (this.dataBuffer.length > 5000) this.dataBuffer = this.dataBuffer.slice(-2500);
         });
 
         this.tcpClient.on('timeout', () => {
