@@ -28,23 +28,9 @@ class DoorLockAccessory {
 
     async handleLockSet(value) {
         if (value === 0) {
-            this.log.info('🔓 문 열림 요청 전송');
-            const packet = (this.config.openPacket || '').toLowerCase();
+            this.log.info('🔓 문 열림 동작 요청');
 
-            if (!packet) {
-                this.log.error('설정에서 openPacket을 확인하세요.');
-                return;
-            }
-
-            const repeat = this.config.repeat || 4;
-            const delay = this.config.delay || 200;
-            const sendAction = async () => {
-                for (let i = 0; i < repeat; i++) {
-                    this.platform.sendPacket(packet);
-                    await new Promise(resolve => setTimeout(resolve, delay));
-                }
-            };
-            sendAction();
+            this.platform.requestOpen();
 
             this.lockState = 0;
             this.lockService.updateCharacteristic(this.Characteristic.LockCurrentState, 0);

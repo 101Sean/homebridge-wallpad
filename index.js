@@ -14,6 +14,11 @@ class WallpadPlatform {
         this.tcpClient = null;
         this.dataBuffer = "";
         this.lastBellTime = 0;
+        this.isLockPending = false;
+        this.lockPendingTimeout = null;
+
+        this.targetBellPacket = (this.config.bellPacket || '').toLowerCase().replace(/\s/g, '');
+        this.targetOpenPacket = (this.config.openPacket || '').toLowerCase().replace(/\s/g, '');
 
         if (!config) return;
 
@@ -38,7 +43,7 @@ class WallpadPlatform {
     }
 
     connectToEW11() {
-        const ip = this.config.ip || '192.168.0.79';
+        const ip = this.config.ip || '192.168.0.1';
         const port = this.config.port || 8899;
 
         this.tcpClient = new net.Socket();
@@ -52,26 +57,24 @@ class WallpadPlatform {
 
             if (this.config.debugMode) this.log.debug(`[RAW DATA]: ${hexChunk}`);
 
-            const bellPacket = (this.config.bellPacket || '').toLowerCase().replace(/\s/g, '');
-            if (bellPacket && this.dataBuffer.includes(bellPacket)) {
+            if (this.targetBellPacket && this.dataBuffer.includes(this.targetBellPacket)) {
+                if (this.isLockPending) {
+                    this.log.info('🎯 [하이재킹] 서버 신호 포착! 패킷 연사를 시작합니다.');
+                    this.executeBurstOpen();
+                    this.isLockPending = false;
+                    if (this.lockPendingTimeout) clearTimeout(this.lockPendingTimeout);
+                }
+
                 const now = Date.now();
                 if (now - this.lastBellTime > 5000) {
-                    this.log.info('🔔 [호출 감지] 벨 호출 패킷을 포착했습니다!');
+                    this.log.info('🔔 [호출 감지] 벨 호출!');
                     if (this.bell) this.bell.trigger();
                     this.lastBellTime = now;
                 }
-                const bIdx = this.dataBuffer.indexOf(bellPacket);
-                this.dataBuffer = this.dataBuffer.slice(bIdx + bellPacket.length);
+                this.dataBuffer = "";
             }
 
-            const openPacket = (this.config.openPacket || '').toLowerCase().replace(/\s/g, '');
-            if (openPacket && this.dataBuffer.includes(openPacket)) {
-                this.log.debug(`⚠️ [송신 확인] 문열림 신호가 선로에서 감지됨`);
-                const oIdx = this.dataBuffer.indexOf(openPacket);
-                this.dataBuffer = this.dataBuffer.slice(oIdx + openPacket.length);
-            }
-
-            if (this.dataBuffer.length > 5000) this.dataBuffer = this.dataBuffer.slice(-2500);
+            if (this.dataBuffer.length > 2000) this.dataBuffer = this.dataBuffer.slice(-1000);
         });
 
         this.tcpClient.on('timeout', () => {
@@ -83,6 +86,30 @@ class WallpadPlatform {
             this.log.warn('[연결 종료] 10초 후 재연결을 시도합니다.');
             setTimeout(() => this.connectToEW11(), 10000);
         });
+    }
+
+    async executeBurstOpen() {
+        const packet = this.targetOpenPacket;
+        const repeat = this.config.repeat || 100;
+        const delay = this.config.delay || 10;
+
+        for (let i = 0; i < repeat; i++) {
+            this.sendPacket(packet);
+            if (delay > 0) await new Promise(res => setTimeout(res, delay));
+        }
+    }
+
+    requestOpen() {
+        this.log.info('⏳ 문열림 예약: 서버 신호를 대기합니다...');
+        this.isLockPending = true;
+
+        if (this.lockPendingTimeout) clearTimeout(this.lockPendingTimeout);
+        this.lockPendingTimeout = setTimeout(() => {
+            if (this.isLockPending) {
+                this.log.warn('⚠️ 서버 신호 감지 실패 (타임아웃)');
+                this.isLockPending = false;
+            }
+        }, 10000);
     }
 
     sendPacket(packet) {
