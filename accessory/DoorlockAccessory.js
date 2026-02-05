@@ -4,9 +4,7 @@ class DoorLockAccessory {
         this.config = config;
         this.api = api;
         this.platform = platform;
-
         this.name = name;
-        this.displayName = name;
         this.lockState = 1;
 
         this.Service = api.hap.Service;
@@ -28,9 +26,9 @@ class DoorLockAccessory {
 
     async handleLockSet(value) {
         if (value === 0) {
-            this.log.info('🔓 문 열림 동작 요청');
+            this.log.info('[DoorLock] 열림 동작 실행');
 
-            this.platform.requestOpen();
+            this.platform.executeOpen();
 
             this.lockState = 0;
             this.lockService.updateCharacteristic(this.Characteristic.LockCurrentState, 0);
@@ -47,7 +45,7 @@ class DoorLockAccessory {
         const informationService = new this.Service.AccessoryInformation()
             .setCharacteristic(this.Characteristic.Manufacturer, 'Custom')
             .setCharacteristic(this.Characteristic.Model, 'Wallpad Lock')
-            .setCharacteristic(this.Characteristic.SerialNumber, '192.168.0.79');
+            .setCharacteristic(this.Characteristic.SerialNumber, this.config.ip);
 
         return [informationService, this.lockService];
     }

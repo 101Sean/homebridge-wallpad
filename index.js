@@ -14,9 +14,8 @@ class WallpadPlatform {
         this.tcpClient = null;
         this.dataBuffer = "";
         this.lastBellTime = 0;
-        this.isLockPending = false;
-        this.lockPendingTimeout = null;
 
+        this.bellCooldown = this.config.bellCooldown || 5000;
         this.targetBellPacket = (this.config.bellPacket || '').toLowerCase().replace(/\s/g, '');
         this.targetOpenPacket = (this.config.openPacket || '').toLowerCase().replace(/\s/g, '');
 
@@ -58,22 +57,13 @@ class WallpadPlatform {
             if (this.config.debugMode) this.log.debug(`[RAW DATA]: ${hexChunk}`);
 
             if (this.targetBellPacket && this.dataBuffer.includes(this.targetBellPacket)) {
-                if (this.isLockPending) {
-                    this.log.info('🎯 [하이재킹] 서버 신호 포착! 패킷 연사를 시작합니다.');
-                    this.executeBurstOpen();
-                    this.isLockPending = false;
-                    if (this.lockPendingTimeout) clearTimeout(this.lockPendingTimeout);
-                }
-
                 const now = Date.now();
-                if (now - this.lastBellTime > 5000) {
-                    this.log.info('🔔 [호출 감지] 벨 호출!');
+                if (now - this.lastBellTime > this.bellCooldown) {
                     if (this.bell) this.bell.trigger();
                     this.lastBellTime = now;
                 }
                 this.dataBuffer = "";
             }
-
             if (this.dataBuffer.length > 2000) this.dataBuffer = this.dataBuffer.slice(-1000);
         });
 
@@ -88,7 +78,7 @@ class WallpadPlatform {
         });
     }
 
-    async executeBurstOpen() {
+    async executeOpen() {
         const packet = this.targetOpenPacket;
         const repeat = this.config.repeat || 100;
         const delay = this.config.delay || 10;
@@ -99,24 +89,10 @@ class WallpadPlatform {
         }
     }
 
-    requestOpen() {
-        this.log.info('⏳ 문열림 예약: 서버 신호를 대기합니다...');
-        this.isLockPending = true;
-
-        if (this.lockPendingTimeout) clearTimeout(this.lockPendingTimeout);
-        this.lockPendingTimeout = setTimeout(() => {
-            if (this.isLockPending) {
-                this.log.warn('⚠️ 서버 신호 감지 실패 (타임아웃)');
-                this.isLockPending = false;
-            }
-        }, 10000);
-    }
-
     sendPacket(packet) {
         if (this.tcpClient && !this.tcpClient.destroyed) {
-            const cleanPacket = packet.toLowerCase().replace(/\s/g, '');
-            this.tcpClient.write(Buffer.from(cleanPacket, 'hex'));
-            this.log.debug(`📤 패킷 전송: ${cleanPacket}`);
+            this.tcpClient.write(Buffer.from(packet, 'hex'));
+            this.log.debug(`📤 패킷 전송: ${packet}`);
             return true;
         }
         this.log.error('[전송 실패] EW11 연결 확인 필요');

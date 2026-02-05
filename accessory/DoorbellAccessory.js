@@ -21,11 +21,11 @@ class DoorbellAccessory {
         const speakerService = this.accessory.getService(this.Service.Speaker) ||
             this.accessory.addService(this.Service.Speaker, 'Speaker');
 
-        this.log.info('[Service] 초기화 완료');
+        this.log.info('[DoorBell] 초기화 완료');
     }
 
     trigger() {
-        this.log.info('🔔 초인종 이벤트 발생');
+        this.log.info('[DoorBell] 이벤트 발생');
         this.service.getCharacteristic(this.Characteristic.ProgrammableSwitchEvent).updateValue(0);
     }
 }
