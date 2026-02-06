@@ -50,6 +50,9 @@ class WallpadPlatform {
         this.tcpClient.setTimeout(60000);
         this.tcpClient.connect(port, ip, () => this.log.info(`[연결 성공] EW11 (${ip}:${port})`));
 
+        this.pendingOpen = false;
+        const sequenceEndTrigger = 'bc71000001'; // Last Sequence
+
         this.tcpClient.on('data', (data) => {
             const hexChunk = data.toString('hex').toLowerCase();
             this.dataBuffer += hexChunk;
@@ -64,7 +67,15 @@ class WallpadPlatform {
                 }
                 this.dataBuffer = "";
             }
-            if (this.dataBuffer.length > 2000) this.dataBuffer = this.dataBuffer.slice(-1000);
+
+            if (this.pendingOpen && this.dataBuffer.includes(sequenceEndTrigger)) {
+                this.log.info('[Trigger] 시퀀스 끝 감지');
+                this.fireBurst();
+                this.pendingOpen = false;
+                this.dataBuffer = "";
+            }
+
+            if (this.dataBuffer.length > 1000) this.dataBuffer = this.dataBuffer.slice(-500);
         });
 
         this.tcpClient.on('timeout', () => {
@@ -79,16 +90,29 @@ class WallpadPlatform {
     }
 
     async executeOpen() {
+        if (this.pendingOpen) return;
+        this.pendingOpen = true;
+
+        this.openTimeout = setTimeout(() => {
+            if (this.pendingOpen) {
+                this.pendingOpen = false;
+                this.log.warn('[Cancel] 5초 내에 트리거 패킷이 발견되지 않아 취소되었습니다.');
+            }
+        }, 5000);
+    }
+
+    async fireBurst() {
+        if (this.openTimeout) clearTimeout(this.openTimeout);
+
         const packet = this.targetOpenPacket;
-        const repeat = this.config.repeat || 100;
-        const delay = this.config.delay || 10;
+        const repeat = this.config.repeat || 10;
+        const interval = this.config.interval || 15;
 
         for (let i = 0; i < repeat; i++) {
             this.sendPacket(packet);
-            if (delay > 0) await new Promise(res => setTimeout(res, delay));
+            await new Promise(res => setTimeout(res, interval));
         }
     }
-
     sendPacket(packet) {
         if (this.tcpClient && !this.tcpClient.destroyed) {
             this.tcpClient.write(Buffer.from(packet, 'hex'));
