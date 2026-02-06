@@ -116,7 +116,7 @@ class WallpadPlatform {
                     if (err) this.log.error(`[전송 에러] ${err.message}`);
                 });
             }
-            this.log.info(`📤 UDP Burst 전송 완료: ${this.targetOpenPacket} (${repeat}회)`);
+            this.log.info(`📤 UDP Burst 완료: ${this.targetOpenPacket} (${repeat}회)`);
         };
 
         if (delay > 0) {
