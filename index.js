@@ -50,7 +50,13 @@ class WallpadPlatform {
 
         this.udpSocket = dgram.createSocket('udp4');
 
+        this.udpSocket.bind(port, () => {
+            this.log.info(`[UDP 수신 시작] 우분투 포트 ${port} 바인딩 완료`);
+        });
+
         this.udpSocket.on('message', (msg, rinfo) => {
+            if (rinfo.address !== ip) return;
+
             const hexChunk = msg.toString('hex').toLowerCase();
             this.dataBuffer += hexChunk;
 
