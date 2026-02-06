@@ -18,6 +18,8 @@ class WallpadPlatform {
         this.bellCooldown = this.config.bellCooldown || 5000;
         this.targetBellPacket = (this.config.bellPacket || '').toLowerCase().replace(/\s/g, '');
         this.targetOpenPacket = (this.config.openPacket || '').toLowerCase().replace(/\s/g, '');
+        this.sequenceEndTrigger = (this.config.sequenceEndTrigger || '').toLowerCase().replace(/\s/g, '');
+        this.timing = this.config.timingSet || { interval: 10, repeat: 2, delay: 10 };
 
         if (!config) return;
 
@@ -68,8 +70,7 @@ class WallpadPlatform {
                 this.dataBuffer = "";
             }
 
-            if (this.pendingOpen && this.dataBuffer.includes(sequenceEndTrigger)) {
-                this.log.info('[Trigger] 시퀀스 끝 감지');
+            if (this.pendingOpen && this.dataBuffer.includes(this.sequenceEndTrigger)) {
                 this.fireBurst();
                 this.pendingOpen = false;
                 this.dataBuffer = "";
@@ -105,14 +106,16 @@ class WallpadPlatform {
         if (this.openTimeout) clearTimeout(this.openTimeout);
 
         const packet = this.targetOpenPacket;
-        const repeat = this.config.repeat || 10;
-        const interval = this.config.interval || 15;
+        const { delay, repeat, interval } = this.timing;
+
+        if (delay > 0) await new Promise(res => setTimeout(res, delay));
 
         for (let i = 0; i < repeat; i++) {
             this.sendPacket(packet);
-            await new Promise(res => setTimeout(res, interval));
+            if (i < repeat - 1) await new Promise(res => setTimeout(res, interval));
         }
     }
+
     sendPacket(packet) {
         if (this.tcpClient && !this.tcpClient.destroyed) {
             this.tcpClient.write(Buffer.from(packet, 'hex'));
