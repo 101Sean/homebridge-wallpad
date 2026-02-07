@@ -20,7 +20,7 @@ class WallpadPlatform {
         this.targetBellPacket = (this.config.bellPacket || '').toLowerCase().replace(/\s/g, '');
         this.targetOpenPacket = (this.config.openPacket || '').toLowerCase().replace(/\s/g, '');
         this.sequenceEndTrigger = (this.config.sequenceEndTrigger || '').toLowerCase().replace(/\s/g, '');
-        this.timing = this.config.timingSet || { interval: 0, repeat: 10, delay: 0 };
+        this.timing = this.config.timingSet || { repeat: 10, delay: 0 };
 
         if (!config) return;
 
@@ -108,7 +108,7 @@ class WallpadPlatform {
         const packet = Buffer.from(this.targetOpenPacket, 'hex');
         const ip = this.config.ip;
         const port = this.config.port;
-        const { delay, repeat, interval } = this.timing;
+        const { delay, repeat } = this.timing;
 
         const send = () => {
             for (let i = 0; i < repeat; i++) {
