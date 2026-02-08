@@ -15,12 +15,13 @@ class WallpadPlatform {
         this.dataBuffer = "";
         this.lastBellTime = 0;
         this.pendingOpen = false;
+        this.burstTimer = null;
 
         this.bellCooldown = this.config.bellCooldown || 5000;
         this.targetBellPacket = (this.config.bellPacket || '').toLowerCase().replace(/\s/g, '');
         this.targetOpenPacket = (this.config.openPacket || '').toLowerCase().replace(/\s/g, '');
         this.sequenceEndTrigger = (this.config.sequenceEndTrigger || '').toLowerCase().replace(/\s/g, '');
-        this.timing = this.config.timingSet || { repeat: 10, delay: 0 };
+        this.timing = this.config.timingSet || { interval: 20, repeat: 15, delay: 10 };
 
         if (!config) return;
 
@@ -73,8 +74,8 @@ class WallpadPlatform {
 
             if (this.pendingOpen && this.dataBuffer.includes(this.sequenceEndTrigger)) {
                 this.pendingOpen = false;
-                this.fireBurstUDP();
                 this.dataBuffer = "";
+                this.fireBurstUDP();
             }
 
             if (this.dataBuffer.length > 500) this.dataBuffer = this.dataBuffer.slice(-200);
@@ -104,25 +105,34 @@ class WallpadPlatform {
 
     fireBurstUDP() {
         if (this.openTimeout) clearTimeout(this.openTimeout);
+        if (this.burstTimer) clearInterval(this.burstTimer);
 
         const packet = Buffer.from(this.targetOpenPacket, 'hex');
         const ip = this.config.ip;
         const port = this.config.port;
-        const { delay, repeat } = this.timing;
+        const { delay, repeat, interval } = this.timing;
+        let sentCount = 0;
 
         const send = () => {
-            for (let i = 0; i < repeat; i++) {
-                this.udpSocket.send(packet, port, ip, (err) => {
-                    if (err) this.log.error(`[전송 에러] ${err.message}`);
-                });
+            this.udpSocket.send(packet, port, ip, (err) => {
+                if (err) this.log.error(`[전송 에러] ${err.message}`);
+            });
+            sentCount++;
+
+            if (sentCount >= repeat) {
+                clearInterval(this.burstTimer);
+                this.burstTimer = null;
+                this.log.info(`📤 전송 완료: ${this.targetOpenPacket} (${repeat}회)`);
             }
-            this.log.info(`📤 UDP Burst 완료: ${this.targetOpenPacket} (${repeat}회)`);
         };
 
-        if (delay > 0) {
-            setTimeout(send, delay);
-        } else {
-            send();
-        }
+        setTimeout(() => {
+            this.log.info(`🚀 패킷 전송 개시 (간격: ${interval}ms)`);
+            if (interval > 0) {
+                this.burstTimer = setInterval(send, interval);
+            } else {
+                for (let i = 0; i < repeat; i++) send();
+            }
+        }, delay);
     }
 }
